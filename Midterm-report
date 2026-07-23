@@ -1,0 +1,20 @@
+Statistical Arbitrage: Pairs Trading Project Report
+Phase 1: Week 1 - Stationarity
+In quantitative finance, establishing stationarity is a prerequisite for predictable modeling. Stationarity implies that the statistical properties of the data generation process do not change over time. A weakly stationary process requires a constant mean, a finite variance, and a time-invariant autocovariance.
+A common pitfall in quantitative finance is assuming that two assets with a high correlation coefficient can be traded as a mean-reverting pair. Correlation only measures the linear relationship between two variables over a specific time frame. If their price difference (the spread) is not bounded, they can eventually diverge permanently, blowing up your account. Therefore, tests like the Augmented Dickey-Fuller (ADF) are used to see if the series has a unit root, which is a red flag for non-stationarity.
+Phase 2: Week 2 - Cointegration & The Spread
+To mathematically prove that a pair is cointegrated, we rely on the Engle-Granger method. This transforms our two non-stationary price series into a single stationary series (the spread).
+The procedure is as follows:
+•	OLS Regression: We regress Asset A against Asset B to find the Hedge Ratio (‭$\beta$‬). The model is ‭$Y_t = \beta X_t + c + \epsilon_t$‬‭‬‭‬‭‬.
+•	Isolating the Spread: Once we have our hedge ratio, we isolate the residuals (the spread). The formula is ‭$\epsilon_t = Y_t - \beta X_t - c$‬‭‬‭‬‭‬.
+•	ADF Test: Now, we apply the Augmented Dickey-Fuller (ADF) test directly to the residuals ‭$\epsilon_t$‬. If the ADF test yields a p-value ‭$< 0.05$‬, we reject the null hypothesis. The residuals are stationary, and ‭$Y_t$‬ and ‭$X_t$‬ are statistically cointegrated.
+To determine if the spread is tradable, we model the stationary spread using the Ornstein-Uhlenbeck (OU) process, which mathematically describes a mean-reverting random walk in continuous time. For our discrete daily data, we simplify this into a linear regression model: ‭$\Delta z_t = -\theta z_{t-1} + \alpha + \epsilon_t$‬‭‬‭‬‭‬‭‬‭‬. Once you extract the slope ‭$-\theta$‬ from your regression, you can calculate the half-life (‭$t_{1/2}$‬). This tells you the average number of days it takes for the spread to revert halfway back to its historical mean. The calculation is ‭$t_{1/2} = \frac{\ln(2)}{\theta}$‬‭‬.
+Phase 3: Week 3 - Signal Generation
+The half-life period dictates the lookback window for your moving averages when you generate trading signals. We calculate the rolling mean (‭$\mu_{rolling}$‬) and rolling standard deviation (‭$\sigma_{rolling}$‬) of the spread. The window size for these rolling metrics should generally be close to the half-life you calculated earlier.
+We normalize the spread into a Z-score using the following formula: ‭$Z_t = \frac{\text{Spread}_t - \mu_{rolling}}{\sigma_{rolling}}$‬‭‬. Now you have a normalized oscillator centered around zero.
+The trading rules are straightforward:
+•	Long the Spread (Buy A, Sell ‭$\beta$‬ of B): When ‭$Z_t < -2.0$‬‭‬‭‬. The spread is abnormally low and should revert upward.
+•	Short the Spread (Sell A, Buy ‭$\beta$‬ of B): When ‭$Z_t > 2.0$‬‭‬. The spread is abnormally high and should revert downward.
+•	Exit Strategy: Close all positions when ‭$Z_t$‬ crosses ‭$0$‬. The spread has reverted to the mean.
+Phase 4: Week 4 - Backtesting & Performance
+The final step is translating the signals into portfolio positions and evaluating the equity curve. Performance is measured through standard quantitative metrics: Total Return (cumulative performance over the backtest), Annualized Sharpe Ratio (risk-adjusted return assuming a risk-free rate), and Maximum Drawdown (the largest peak-to-trough drop).

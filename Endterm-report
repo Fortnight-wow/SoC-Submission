@@ -1,0 +1,47 @@
+Statistical Arbitrage: Endterm Report
+Phase 5: Hurst Exponent & Regime Detection
+The Hurst Exponent (H) measures the long-term memory of a time series. It tells us whether a price series is mean-reverting (H < 0.45), random walk (0.45 ≤ H ≤ 0.55), or trending (H > 0.55).
+
+We estimate H using two methods:
+• Rescaled Range (R/S): Computes the ratio of the range of cumulative deviations to the standard deviation across multiple window sizes, then fits log(E[R/S]) = H·log(n) + C.
+• Detrended Fluctuation Analysis (DFA): Integrates the series, removes local trends in segments of varying size, and measures the RMS fluctuation. The slope of log(F(n)) vs log(n) gives H.
+
+The combined estimate (average of R/S and DFA) classifies the regime and automatically selects the appropriate trading algorithm. This removes subjective strategy selection.
+
+Phase 6: Trend-Following Algorithm
+When H > 0.55, the market is trending. We use a dual EMA crossover (20/50) with two key filters:
+• ADX Filter: The Average Directional Index must exceed 25 to confirm trend strength. This filters out fakeouts — signals that occur in ranging markets where crossovers are unreliable.
+• ATR Trailing Stop: An Average True Range-based trailing stop (2× ATR) locks in profits and limits drawdowns. The stop ratchets in the direction of the trade, never moving backward.
+
+Entry: Fast EMA crosses slow EMA + ADX > 25.
+Exit: Opposite crossover or trailing stop hit.
+
+Phase 7: Risk Management & Beta Hedging
+Portfolio Beta measures sensitivity to market movements: β = Cov(Rp, Rb) / Var(Rb). A β of 1.0 means the portfolio moves with the market.
+
+To hedge to zero β:
+• Compute β via OLS regression of portfolio returns against benchmark returns.
+• Hedge Ratio = −β. Short β units of benchmark for each unit of portfolio.
+• Hedged Return = Portfolio Return − β × Benchmark Return.
+
+This isolates the alpha (skill) component from market exposure. We also compute VaR (95% and 99%) for tail risk and the Sharpe Ratio for risk-adjusted performance.
+
+Phase 8: Walk-Forward Backtest & Kelly Criterion
+Two critical improvements over the midterm backtest:
+
+1. No Look-Ahead Bias: The hedge ratio (β) is computed only from data available up to time t using OLS on Asset_Y[:t+1] vs Asset_X[:t+1]. Z-scores use backward-looking rolling windows. The stationarity filter was removed from the walk-forward path because it runs ADF on the full dataset.
+
+2. Kelly Criterion Position Sizing: f* = (bp − q) / b, where b = win/loss ratio, p = win rate, q = 1−p. We use fractional Kelly (50%) to reduce volatility. The win rate and W/L ratio are estimated from historical trade results up to each point — no future information.
+
+Walk-Forward Optimization: Parameters (Hurst, β, half-life, Kelly fraction) are re-estimated on rolling 120-bar training windows. Each window's parameters are applied only to the next 20-bar out-of-sample period. This eliminates overfitting and parameter look-ahead bias.
+
+Module Summary
+• hurst_exponent.py: R/S + DFA → regime classification
+• indicators.py: OLS hedge ratio, OU half-life, rolling Z-score
+• filters.py: ADF stationarity test
+• trend_following.py: EMA crossover + ADX filter + ATR trailing stop
+• risk_management.py: Beta hedging, VaR, Sharpe, Kelly Criterion
+• backtest.py: Backtesting engine with Kelly sizing
+• walk_forward.py: Rolling parameter re-estimation
+• signal_generator.py: Auto strategy selection via Hurst
+• main.py: Pipeline orchestrator
